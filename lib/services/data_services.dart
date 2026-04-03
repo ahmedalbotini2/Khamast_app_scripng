@@ -1,11 +1,11 @@
 import 'package:flutter/material.dart';
 import 'package:html/parser.dart' as parser;
 import 'package:http/http.dart' as http;
-import 'package:khmsat_services/data_ui/data.dart';
-import 'package:khmsat_services/data_ui/custome_widghit.dart';
+import 'package:khmsat_services/widgets/data.dart';
+import 'package:khmsat_services/widgets/custome_widghit.dart';
 import 'package:redacted/redacted.dart';
 
-class WebScreping {
+class WebScrepingServices {
   final String url = 'https://khamsat.com/community/requests';
 
   Future<List<DataList>> extractData() async {
@@ -46,7 +46,7 @@ class DataServices extends StatefulWidget {
   State<DataServices> createState() => _DataServicesState();
 }
 
-final WebScreping webScreping = WebScreping();
+final WebScrepingServices webScreping = WebScrepingServices();
 
 class _DataServicesState extends State<DataServices> {
   late Future<List<DataList>> _dataFuture;

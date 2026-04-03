@@ -1,8 +1,8 @@
 import 'package:flutter/material.dart';
+import 'package:khmsat_services/screens/portfolio_screen.dart';
+import 'package:khmsat_services/screens/web_screen.dart';
 import 'package:khmsat_services/services/notification_worker.dart';
-import 'package:khmsat_services/splach_screen.dart';
-
-import 'package:khmsat_services/web_scriping/data_services.dart';
+import 'package:khmsat_services/services/data_services.dart';
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -36,7 +36,7 @@ class MyApp extends StatelessWidget {
           centerTitle: true,
         ),
       ),
-      home: SplachScreen(),
+      home: const MainPage(),
     );
   }
 }
@@ -52,6 +52,16 @@ class _MainPageState extends State<MainPage> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
+      floatingActionButton: FloatingActionButton(
+        onPressed: () {
+          Navigator.push(
+            context,
+            MaterialPageRoute(builder: (_) => const WebScreen()),
+          );
+        },
+        backgroundColor: const Color(0xFFD4AF37),
+        child: const Icon(Icons.g_mobiledata_outlined, color: Colors.black),
+      ),
       appBar: AppBar(
         backgroundColor: const Color(0xFFD4AF37),
         elevation: 0.0,

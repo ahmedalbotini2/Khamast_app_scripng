@@ -1,30 +1,30 @@
 plugins {
     id("com.android.application")
-    id("kotlin-android")
-    // The Flutter Gradle Plugin must be applied after the Android and Kotlin Gradle plugins.
+    id("kotlin-android") 
+    // تأكد أن الإصدار في settings.gradle هو 1.9.20
     id("dev.flutter.flutter-gradle-plugin")
 }
 
 android {
     namespace = "com.example.khmsat_services"
-    compileSdk = flutter.compileSdkVersion
+    compileSdk = 36
     ndkVersion = "27.2.12479018";
 
     compileOptions {
-        sourceCompatibility = JavaVersion.VERSION_11
-        targetCompatibility = JavaVersion.VERSION_11
+        sourceCompatibility = JavaVersion.VERSION_17
+        targetCompatibility = JavaVersion.VERSION_17
+        isCoreLibraryDesugaringEnabled = true
     }
 
     kotlinOptions {
-        jvmTarget = JavaVersion.VERSION_11.toString()
+        jvmTarget = "17"
     }
 
     defaultConfig {
-        // TODO: Specify your own unique Application ID (https://developer.android.com/studio/build/application-id.html).
+
         applicationId = "com.example.khmsat_services"
-        // You can update the following values to match your application needs.
-        // For more information, see: https://flutter.dev/to/review-gradle-config.
-        minSdk = flutter.minSdkVersion
+
+        minSdk = 24
         targetSdk = flutter.targetSdkVersion
         versionCode = flutter.versionCode
         versionName = flutter.versionName
@@ -41,4 +41,15 @@ android {
 
 flutter {
     source = "../.."
+}
+dependencies {
+    coreLibraryDesugaring("com.android.tools:desugar_jdk_libs:2.1.4")
+      constraints {
+        implementation("org.jetbrains.kotlin:kotlin-stdlib-jdk7:2.2.0") {
+            because("تحديث الإصدار لحل تعارض مكتبة network_info_plus")
+        }
+        implementation("org.jetbrains.kotlin:kotlin-stdlib-jdk8:1.9.20") {
+            because("تحديث الإصدار لحل تعارض مكتبة network_info_plus")
+        }
+    }
 }
