@@ -1,7 +1,9 @@
-import 'package:flutter/material.dart';
+﻿import 'package:flutter/material.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:google_fonts/google_fonts.dart';
-import 'package:webview_flutter/webview_flutter.dart';
+import 'package:flutter_inappwebview/flutter_inappwebview.dart';
+import 'package:khmsat_services/screens/main_screen.dart';
+
 
 class WebScreen extends StatefulWidget {
   const WebScreen({super.key, this.initialUrl = 'https://khamsat.com'});
@@ -13,88 +15,60 @@ class WebScreen extends StatefulWidget {
 }
 
 class _WebScreenState extends State<WebScreen> {
-  late final WebViewController _controller;
-  final cookieManger = WebViewCookieManager();
+  InAppWebViewController? _controller; // تم تغييرها لتقبل null لتجنب أخطاء late
   final FlutterSecureStorage _secureStorage = const FlutterSecureStorage();
-  static const String _cookieStorageKey = 'webview_cookies';
+  static const String _cookieStorageKey = 'session_cookies'; // توحيد المفتاح
+
   int _progress = 0;
   bool _canGoBack = false;
   bool _canGoForward = false;
+  bool _controllerReady = false;
+
+  // تعريف مدير الكوكيز كمتغير ثابت
+  late CookieManager _cookieManager = CookieManager.instance();
 
   @override
   void initState() {
     super.initState();
-
-    _controller =
-        WebViewController()
-          ..setJavaScriptMode(JavaScriptMode.unrestricted)
-          ..setBackgroundColor(const Color(0xFFF8F5EF))
-          ..setUserAgent(
-            "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/146.0.0.0 Safari/537.36",
-          ) //تعيين User-Agent لمحاكاة متصفح حقيقي، مما يساعد في تجاوز بعض قيود المواقع التي قد تمنع الوصول من WebView الافتراضي.
-          ..setNavigationDelegate(
-            NavigationDelegate(
-              onProgress: (value) {
-                setState(() => _progress = value);
-              },
-              onPageFinished: (String url) async {
-                await _captureCookies();
-                _updateNavState();
-                // داخل الـ NavigationDelegate
-
-                // جلب الكوكيز التي يمكن للـ JS الوصول إليها
-                final String cookies =
-                    await _controller.runJavaScriptReturningResult(
-                          'document.cookie',
-                        )
-                        as String;
-
-                // تنظيف النص (لأن الـ JS أحياناً يرجعه محاطاً بعلامات تنصيص إضافية)
-                String cleanedCookies = cookies.replaceAll('"', '');
-
-                if (cleanedCookies.isNotEmpty && cleanedCookies != "null") {
-                  // حفظها في الخزنة الآمنة
-                  await _secureStorage.write(
-                    key: 'session_cookies',
-                    value: cleanedCookies,
-                  );
-                  print("✅ تم حفظ الكوكيز بنجاح");
-                }
-              },
-              onNavigationRequest: (request) {
-                return NavigationDecision.navigate;
-              },
-            ),
-          )
-          ..loadRequest(Uri.parse(widget.initialUrl));
   }
 
-  /*
-final cookieManager = WebViewCookieManager();
+  /// الطريقة الاحترافية لجلب كافة الكوكيز (بما فيها المحمية HttpOnly)
+  Future<void> _captureAllCookiesNative() async {
+    try {
+      // 1. جلب الكوكيز من "جذور" النظام وليس الجافا سكريبت
+      List<Cookie> cookies = await _cookieManager.getCookies(
+        url: WebUri("https://khamsat.com"),
+      );
 
-Future<void> syncAndVerifyCookies() async {
-  // جلب كافة الكوكيز للنطاق
-  final List<WebViewCookie> cookies = await cookieManager.getCookies(
-    Uri.parse('https://khamsat.com'),
-  );
+      if (cookies.isNotEmpty) {
+        // 2. تحويل قائمة الكوكيز لنص بصيغة (key=value; key2=value2)
+        String cookieString = cookies
+            .map((c) => "${c.name}=${c.value}")
+            .join("; ");
 
-  // البحث عن كوكي الجلسة تحديداً
-  bool hasSession = cookies.any((c) => c.name == 'rack.session');
-  
-  if (hasSession) {
-    print("✅ تم العثور على جلسة الدخول (rack.session) بنجاح!");
-    
-    // تحويلها لنص وحفظها في التخزين الآمن
-    String fullCookiePath = cookies.map((c) => "${c.name}=${c.value}").join("; ");
-    await _ٍ.write(key: 'session_cookies', value: fullCookiePath);
-  } else {
-    print("⚠️ الجلسة غير موجودة في القائمة، تأكد من انتهاء تحميل الصفحة.");
+        // 3. التحقق من وجود جلسة الدخول rack.session
+        bool hasSession = cookies.any((c) => c.name == 'rack.session');
+
+        // 4. التخزين الآمن
+        await _secureStorage.write(key: _cookieStorageKey, value: cookieString);
+
+        if (hasSession) {
+          debugPrint('✅ تم بنجاح اصطياد جلسة الدخول rack.session وكل الكوكيز');
+        } else {
+          debugPrint(
+            '⚠️ تم حفظ الكوكيز ولكن لم يتم العثور على rack.session بعد',
+          );
+        }
+      }
+    } catch (e) {
+      debugPrint('❌ فشل جلب الكوكيز من المستوى الأصلي: $e');
+    }
   }
-}
-*/
+
   Future<void> _updateNavState() async {
-    final back = await _controller.canGoBack();
-    final forward = await _controller.canGoForward();
+    if (_controller == null) return;
+    final back = await _controller!.canGoBack();
+    final forward = await _controller!.canGoForward();
     if (!mounted) return;
     setState(() {
       _canGoBack = back;
@@ -102,65 +76,56 @@ Future<void> syncAndVerifyCookies() async {
     });
   }
 
-  Future<void> _captureCookies() async {
-    try {
-      final result = await _controller.runJavaScriptReturningResult(
-        'document.cookie',
-      );
-      final cookieString = _normalizeJsString(
-        result,
-      ); //جلب الكوكيز من الويبفيو وتحويلها إلى نص عادي.
-      if (cookieString.isEmpty) return;
-      await _secureStorage.write(key: _cookieStorageKey, value: cookieString);
-      debugPrint('تم تخزين الكوكيز بأمان: $cookieString');
-    } catch (_) {
-      debugPrint('فشل جلب أو تخزين الكوكيز، سيتم تجاهل هذا الخطأ.');
-      //الخطأ في جلب الكوكيز من الويبفيو أو تخزينها بأمان يتم تجاهله، حيث لا يؤثر على تجربة المستخدم بشكل كبير.
-    }
-  }
-
-  String _normalizeJsString(Object? result) {
-    if (result == null) return '';
-    var value = result.toString();
-    if (value == 'null') return '';
-    if ((value.startsWith('"') && value.endsWith('"')) ||
-        (value.startsWith("'") && value.endsWith("'"))) {
-      value = value.substring(1, value.length - 1);
-    }
-    value = value.replaceAll(r'\"', '"').replaceAll(r"\'", "'");
-    return value.trim();
-  } //التحويل نتيجة جافا سكريبت إلى نص عادي بدون علامات اقتباس زائدة أو محارف هروب.
-
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      floatingActionButton: FloatingActionButton(
-        onPressed: () async {
-          final String coockieRead =
-              await _secureStorage.read(key: _cookieStorageKey) ?? '';
-          debugPrint('الكوكيز المخزنة حالياً: $coockieRead');
-          Navigator.pop(context);
-        },
-        backgroundColor: const Color(0xFFD4AF37),
-        child: const Icon(Icons.close_rounded, color: Colors.black),
-      ),
+      // زر عائم لعرض الكوكيز المخزنة (للتأكد)
+      // floatingActionButton: FloatingActionButton(
+      //   onPressed: () async {
+      //     final String? cookieRead = await _secureStorage.read(
+      //       key: _cookieStorageKey,
+      //     );
+      //     debugPrint('🔍 الكوكيز في الخزنة الآن: ${cookieRead ?? "فارغة"}');
+      //     // Navigator.pop(context); // يمكنك تفعيلها إذا أردت إغلاق الصفحة
+      //   },
+      //   backgroundColor: const Color(0xFFD4AF37),
+      //   child: const Icon(Icons.bug_report, color: Colors.black),
+      // ),
       appBar: AppBar(
+        backgroundColor: const Color(0xFFD4AF37),
+        elevation: 0,
         title: Text(
           'خمسات',
-          style: GoogleFonts.tajawal(fontWeight: FontWeight.w700),
+          style: GoogleFonts.tajawal(
+            fontWeight: FontWeight.w700,
+            color: Color(0xFFFFFFFF),
+          ),
         ),
+
         actions: [
           IconButton(
-            onPressed: _canGoBack ? _controller.goBack : null,
-            icon: const Icon(Icons.arrow_back_ios_new_rounded),
+            onPressed:
+                _controllerReady && _canGoBack
+                    ? () => _controller?.goBack()
+                    : null,
+            icon: const Icon(
+              Icons.arrow_back_ios_new_rounded,
+              color: Colors.black,
+            ),
           ),
           IconButton(
-            onPressed: _canGoForward ? _controller.goForward : null,
-            icon: const Icon(Icons.arrow_forward_ios_rounded),
+            onPressed:
+                _controllerReady && _canGoForward
+                    ? () => _controller?.goForward()
+                    : null,
+            icon: const Icon(
+              Icons.arrow_forward_ios_rounded,
+              color: Colors.black,
+            ),
           ),
           IconButton(
-            onPressed: () => _controller.reload(),
-            icon: const Icon(Icons.refresh_rounded),
+            onPressed: _controllerReady ? () => _controller?.reload() : null,
+            icon: const Icon(Icons.refresh_rounded, color: Colors.black),
           ),
         ],
         bottom:
@@ -170,13 +135,60 @@ Future<void> syncAndVerifyCookies() async {
                   child: LinearProgressIndicator(
                     value: _progress / 100,
                     backgroundColor: Colors.black12,
-                    color: const Color(0xFF111111),
+                    color: const Color(0xFF00B232), // لون خمسات الأخضر
                     minHeight: 3,
                   ),
                 )
                 : null,
       ),
-      body: WebViewWidget(controller: _controller),
+      body: InAppWebView(
+        initialUrlRequest: URLRequest(url: WebUri(widget.initialUrl)),
+        initialSettings: InAppWebViewSettings(
+          javaScriptEnabled: true,
+          // تفعيل تخزين البيانات محلياً لضمان بقاء الجلسة
+          domStorageEnabled: true,
+          databaseEnabled: true,
+          // البصمة التي تجعل التطبيق يتبع سياسة Google Chrome
+          userAgent:
+              "Mozilla/5.0 (Linux; Android 13; Pixel 7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/116.0.0.0 Mobile Safari/537.36",
+          thirdPartyCookiesEnabled: true,
+          allowFileAccessFromFileURLs: true,
+        ),
+        onWebViewCreated: (controller) {
+          _controller = controller;
+          setState(() => _controllerReady = true);
+        },
+        onProgressChanged: (controller, progress) {
+          setState(() => _progress = progress);
+        },
+        onLoadStop: (controller, url) async {
+          String urlString = url.toString();
+
+          await _captureAllCookiesNative();
+
+          // 2. التحقق إذا وصل المستخدم لصفحة البروفايل
+          if (urlString.contains("khamsat.com/user/")) {
+            Uri uri = Uri.parse(urlString);
+            String username = uri.pathSegments.last;
+
+             await _secureStorage.write(key: 'saved_username', value: username);
+            // final String? savedCookies = await _secureStorage.read(
+            //   key: 'session_cookies',
+            // );
+
+            if (mounted) {
+              Navigator.pushAndRemoveUntil(
+                context,
+                MaterialPageRoute(builder: (context) => MainScreen()),
+                (route) =>
+                    false, // هذا يمنع المستخدم من العودة للخلف لصفحة الويب
+              );
+            }
+          }
+
+          _updateNavState();
+        },
+      ),
     );
   }
 }

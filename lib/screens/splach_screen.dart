@@ -1,60 +1,72 @@
 import 'package:animated_splash_screen/animated_splash_screen.dart';
 import 'package:flutter/material.dart';
-import 'package:khmsat_services/main.dart';
+import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 
-class SplachScreen extends StatelessWidget {
+import 'package:khmsat_services/screens/linked_screen.dart';
+import 'package:khmsat_services/screens/main_screen.dart';
+
+class SplachScreen extends StatefulWidget {
   const SplachScreen({super.key});
 
   @override
+  State<SplachScreen> createState() => _SplachScreenState();
+}
+
+class _SplachScreenState extends State<SplachScreen> {
+  final FlutterSecureStorage storage = FlutterSecureStorage();
+  late Future<Widget> _nextScreenFuture;
+
+  @override
+  void initState() {
+    super.initState();
+   
+    _nextScreenFuture = checkLogin();
+  }
+
+  Future<Widget> checkLogin() async {
+   
+    try {
+      String? storedName = await storage.read(key: 'saved_username');
+      String? storedCookies = await storage.read(key: 'session_cookies');
+      if (storedName != null && storedCookies != null) {
+        return MainScreen();
+      } else {
+        return LinkedScreen();
+      }
+    } catch (e) {
+      debugPrint("Error for in chacked key:$e");
+      return LinkedScreen();
+    }
+  }
+
+  @override
   Widget build(BuildContext context) {
-    return AnimatedSplashScreen(
-      splash: Column(
-        mainAxisAlignment: MainAxisAlignment.center,
-        children: [
-          Container(
-            width: 120,
-            height: 120,
-            decoration: BoxDecoration(
-              color: const Color(0xFFD4AF37),
-              borderRadius: BorderRadius.circular(24),
-              boxShadow: const [
-                BoxShadow(
-                  color: Color(0x55000000),
-                  blurRadius: 18,
-                  offset: Offset(0, 8),
-                ),
-              ],
-            ),
-            child: const Icon(
-              Icons.sailing_outlined,
-              color: Colors.black,
-              size: 56,
+    return FutureBuilder(
+      future: _nextScreenFuture,
+      builder: (context, snapshot) {
+        if (snapshot.connectionState == ConnectionState.waiting) {
+          return const Scaffold(
+            backgroundColor: Color(0xFF111111),
+            body: Center(child: CircularProgressIndicator()),
+          );
+        }
+        return AnimatedSplashScreen(
+          splash: Center(
+            child: const Text(
+              'Ø®Ù…Ø³Ø§Øª',
+              style: TextStyle(
+                fontSize: 32,
+                fontWeight: FontWeight.bold,
+                color: Color(0xFFD4AF37),
+                letterSpacing: 1.2,
+              ),
             ),
           ),
-          const SizedBox(height: 20),
-          const Text(
-            'Ø®Ù…Ø³Ø§Øª',
-            style: TextStyle(
-              fontSize: 32,
-              fontWeight: FontWeight.bold,
-              color: Color(0xFFD4AF37),
-              letterSpacing: 1.2,
-            ),
-          ),
-          const SizedBox(height: 8),
-          const Text(
-            'ÇáãØæÑ: ALBASHA',
-            style: TextStyle(
-              fontSize: 14,
-              color: Colors.white70,
-              letterSpacing: 0.6,
-            ),
-          ),
-        ],
-      ),
-      splashTransition: SplashTransition.fadeTransition,
-      nextScreen: MainPage(),
-      backgroundColor: const Color(0xFF111111),
+          splashTransition: SplashTransition.fadeTransition,
+          nextScreen: snapshot.data!,
+          backgroundColor: const Color(0xFF111111),
+        );
+      },
     );
   }
 }

@@ -13,23 +13,13 @@ class _ChatScreenState extends State<ChatScreen> {
   final ScrollController _scrollController = ScrollController();
 
   final List<_ChatMessage> _messages = [
-    const _ChatMessage(
-      role: _MessageRole.ai,
-      text:
-          'gemini.',
-      time: '09:14',
-    ),
+    const _ChatMessage(role: _MessageRole.ai, text: 'gemini.', time: '09:14'),
     const _ChatMessage(
       role: _MessageRole.user,
       text: 'chat gpt ',
       time: '09:16',
     ),
-    const _ChatMessage(
-      role: _MessageRole.ai,
-      text:
-          'deepseek',
-      time: '09:16',
-    ),
+    const _ChatMessage(role: _MessageRole.ai, text: 'deepseek', time: '09:16'),
   ];
 
   @override
@@ -84,9 +74,7 @@ class _ChatScreenState extends State<ChatScreen> {
           SafeArea(
             child: Column(
               children: [
-                _ChatHeader(
-                  onBack: () => Navigator.of(context).maybePop(),
-                ),
+                _ChatHeader(onBack: () => Navigator.of(context).maybePop()),
                 Expanded(
                   child: ListView.separated(
                     controller: _scrollController,
@@ -100,10 +88,7 @@ class _ChatScreenState extends State<ChatScreen> {
                   ),
                 ),
                 const _SuggestionStrip(),
-                _Composer(
-                  controller: _controller,
-                  onSend: _sendMessage,
-                ),
+                _Composer(controller: _controller, onSend: _sendMessage),
               ],
             ),
           ),
@@ -159,10 +144,7 @@ class _BackgroundDecor extends StatelessWidget {
 }
 
 class _SoftCircle extends StatelessWidget {
-  const _SoftCircle({
-    required this.size,
-    required this.colors,
-  });
+  const _SoftCircle({required this.size, required this.colors});
 
   final double size;
   final List<Color> colors;
@@ -221,11 +203,7 @@ class _ChatHeader extends StatelessWidget {
                 color: const Color(0xFFD4AF37),
                 borderRadius: BorderRadius.circular(16),
               ),
-              child: const Icon(
-                Icons.bolt,
-                color: Colors.black,
-                size: 24,
-              ),
+              child: const Icon(Icons.bolt, color: Colors.black, size: 24),
             ),
             const SizedBox(width: 12),
             Expanded(
@@ -233,7 +211,7 @@ class _ChatHeader extends StatelessWidget {
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   Text(
-                    '����� �����',
+                    'Ahmed',
                     style: GoogleFonts.tajawal(
                       fontSize: 18,
                       fontWeight: FontWeight.w700,
@@ -253,7 +231,7 @@ class _ChatHeader extends StatelessWidget {
                       ),
                       const SizedBox(width: 6),
                       Text(
-                        '���� ���� ������� �����',
+                        'Ali',
                         style: GoogleFonts.tajawal(
                           fontSize: 12,
                           color: Colors.black54,
@@ -287,9 +265,8 @@ class _ChatBubble extends StatelessWidget {
   Widget build(BuildContext context) {
     final isUser = message.role == _MessageRole.user;
 
-    final bubbleColor = isUser
-        ? const Color(0xFF111111)
-        : Colors.white.withValues(alpha: 0.9);
+    final bubbleColor =
+        isUser ? const Color(0xFF111111) : Colors.white.withValues(alpha: 0.9);
     final textColor = isUser ? Colors.white : const Color(0xFF111111);
     final align = isUser ? Alignment.centerRight : Alignment.centerLeft;
 
@@ -352,11 +329,7 @@ class _SuggestionStrip extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final suggestions = [
-      '���� �� ��� ��� ����',
-      '����� ���� �������',
-      '��� ����� ��� ������',
-    ];
+    final suggestions = ['one', 'two', 'trey'];
 
     return SizedBox(
       height: 48,
@@ -429,7 +402,7 @@ class _Composer extends StatelessWidget {
                   fontWeight: FontWeight.w500,
                 ),
                 decoration: InputDecoration(
-                  hintText: '���� ������ ���� ���...',
+                  hintText: 'ارسال ملاجظات...',
                   hintStyle: GoogleFonts.tajawal(
                     fontSize: 13.5,
                     color: Colors.black38,

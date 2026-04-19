@@ -1,8 +1,9 @@
 import 'package:flutter/material.dart';
-import 'package:khmsat_services/screens/portfolio_screen.dart';
-import 'package:khmsat_services/screens/web_screen.dart';
+import 'package:khmsat_services/screens/main_screen.dart';
+import 'package:khmsat_services/screens/splach_screen.dart';
+//import 'package:khmsat_services/screens/web_screen.dart';
 import 'package:khmsat_services/services/notification_worker.dart';
-import 'package:khmsat_services/services/data_services.dart';
+
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -36,7 +37,7 @@ class MyApp extends StatelessWidget {
           centerTitle: true,
         ),
       ),
-      home: const MainPage(),
+      home:SplachScreen(),
     );
   }
 }
@@ -52,16 +53,17 @@ class _MainPageState extends State<MainPage> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      floatingActionButton: FloatingActionButton(
-        onPressed: () {
-          Navigator.push(
-            context,
-            MaterialPageRoute(builder: (_) => const WebScreen()),
-          );
-        },
-        backgroundColor: const Color(0xFFD4AF37),
-        child: const Icon(Icons.g_mobiledata_outlined, color: Colors.black),
-      ),
+      // floatingActionButton: FloatingActionButton(
+      //   heroTag: 'main_fab',
+      //   onPressed: () {
+      //     Navigator.push(
+      //       context,
+      //       MaterialPageRoute(builder: (_) => const WebScreen()),
+      //     );
+      //   },
+      //   backgroundColor: const Color(0xFFD4AF37),
+      //   child: const Icon(Icons.g_mobiledata_outlined, color: Colors.black),
+      // ),
       appBar: AppBar(
         backgroundColor: const Color(0xFFD4AF37),
         elevation: 0.0,
@@ -80,7 +82,7 @@ class _MainPageState extends State<MainPage> {
             colors: [Color(0xFFFFF5D1), Color(0xFFF8F5EF)],
           ),
         ),
-        child: const DataServices(),
+        child: const MainScreen(),
       ),
     );
   }
