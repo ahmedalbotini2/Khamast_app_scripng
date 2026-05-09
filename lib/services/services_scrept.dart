@@ -5,7 +5,9 @@ import 'package:khmsat_services/resources/data.dart';
 class WebScrepingServices {
   final String url = 'https://khamsat.com/community/requests';
   static String orderId = '';
-
+  static String descriptionOrder = '';
+  static String imageOrder = '';
+  static String nameOrder = '';
   Future<List<DataList>> extractData() async {
     final List<DataList> service = [];
 
@@ -21,26 +23,28 @@ class WebScrepingServices {
         try {
           final image =
               post.querySelector('td.avatar-td img')?.attributes['src'] ?? '';
+          imageOrder = image;
           final name =
               post.querySelector('h3.details-head a')?.text.trim() ??
               'No title';
+          nameOrder = name;
           final label =
               post.querySelector('ul.details-list li')?.text.trim() ??
               'No details';
-          final firstLink = post.querySelector('h3.details-head a');
-          final href = firstLink?.attributes['href'] ?? '';
-          // final orderLink =
-          //     post
-          //         .querySelector('h3.details-head a')
-          //         ?.attributes['']
-          //         ?.split('/')
-          //         .last;
-          //   final herf = orderLink?.attributes['ajaxbtn'] ?? 'id is find !';
-          //  // final extract = herf.split('/').last;
-          if (href.isNotEmpty) {
-            orderId = href.split('/').last;
-          }
-          service.add(DataList(name: name, image: image, description: label));
+          descriptionOrder = label;
+          // final firstLink = post.querySelector('h3.details-head a');
+          // final href = firstLink?.attributes['href'] ?? '';
+// داخل الـ loop في كلاس WebScrepingServices
+final String href = post.querySelector('h3.details-head a')?.attributes['href'] ?? '';
+String currentId = href.split('/').last;
+
+// أضف الـ id داخل الكائن
+service.add(DataList(
+  name: name, 
+  image: image, 
+  description: label, 
+  id: currentId, // تأكد من إضافة هذا الحقل في مودل DataList
+));
         } catch (e) {
           print('Error parsing post: $e');
         }

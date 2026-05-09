@@ -1,13 +1,19 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_gemini/flutter_gemini.dart';
 import 'package:khmsat_services/screens/main_screen.dart';
 import 'package:khmsat_services/screens/splach_screen.dart';
-//import 'package:khmsat_services/screens/web_screen.dart';
-import 'package:khmsat_services/services/notification_worker.dart';
-
+import 'package:khmsat_services/services/background_service.dart';
+import 'package:khmsat_services/services/notification.dart';
 
 Future<void> main() async {
-  WidgetsFlutterBinding.ensureInitialized();
-  await NotificationWorker.initialize();
+  try {
+    WidgetsFlutterBinding.ensureInitialized();
+    await initializeServiceBackground();
+    await NotificationService.init();
+    Gemini.init(apiKey: 'AIzaSyAvHsSfEWZfCCGahX-VLoeu4XVp2X6jimg');
+  } catch (error) {
+    debugPrint('$error');
+  }
   runApp(const MyApp());
 }
 
@@ -37,7 +43,7 @@ class MyApp extends StatelessWidget {
           centerTitle: true,
         ),
       ),
-      home:SplachScreen(),
+      home: SplachScreen(),
     );
   }
 }

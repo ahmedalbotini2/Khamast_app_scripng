@@ -1,6 +1,7 @@
 import 'package:animated_splash_screen/animated_splash_screen.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
+import 'package:khmsat_services/resources/resources.dart';
 
 import 'package:khmsat_services/screens/linked_screen.dart';
 import 'package:khmsat_services/screens/main_screen.dart';
@@ -52,15 +53,7 @@ class _SplachScreenState extends State<SplachScreen> {
         }
         return AnimatedSplashScreen(
           splash: Center(
-            child: const Text(
-              'خمسات',
-              style: TextStyle(
-                fontSize: 32,
-                fontWeight: FontWeight.bold,
-                color: Color(0xFFD4AF37),
-                letterSpacing: 1.2,
-              ),
-            ),
+            child: Image.asset(ImageApp.logo, width: 150, height: 150),
           ),
           splashTransition: SplashTransition.fadeTransition,
           nextScreen: snapshot.data!,

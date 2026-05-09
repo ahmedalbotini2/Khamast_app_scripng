@@ -4,7 +4,6 @@ import 'package:google_fonts/google_fonts.dart';
 import 'package:flutter_inappwebview/flutter_inappwebview.dart';
 import 'package:khmsat_services/screens/main_screen.dart';
 
-
 class WebScreen extends StatefulWidget {
   const WebScreen({super.key, this.initialUrl = 'https://khamsat.com'});
 
@@ -104,26 +103,6 @@ class _WebScreenState extends State<WebScreen> {
 
         actions: [
           IconButton(
-            onPressed:
-                _controllerReady && _canGoBack
-                    ? () => _controller?.goBack()
-                    : null,
-            icon: const Icon(
-              Icons.arrow_back_ios_new_rounded,
-              color: Colors.black,
-            ),
-          ),
-          IconButton(
-            onPressed:
-                _controllerReady && _canGoForward
-                    ? () => _controller?.goForward()
-                    : null,
-            icon: const Icon(
-              Icons.arrow_forward_ios_rounded,
-              color: Colors.black,
-            ),
-          ),
-          IconButton(
             onPressed: _controllerReady ? () => _controller?.reload() : null,
             icon: const Icon(Icons.refresh_rounded, color: Colors.black),
           ),
@@ -171,7 +150,7 @@ class _WebScreenState extends State<WebScreen> {
             Uri uri = Uri.parse(urlString);
             String username = uri.pathSegments.last;
 
-             await _secureStorage.write(key: 'saved_username', value: username);
+            await _secureStorage.write(key: 'saved_username', value: username);
             // final String? savedCookies = await _secureStorage.read(
             //   key: 'session_cookies',
             // );

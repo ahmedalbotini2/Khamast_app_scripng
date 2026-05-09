@@ -1,5 +1,6 @@
 class ImageApp {
-  static const String logo = 'asset/images/wifi.png';
+  static const String logo = 'asset/images/logo.png';
+  static const String aiIcon = 'asset/images/creative.png';
 }
 
 class LottieApp {
@@ -7,5 +8,5 @@ class LottieApp {
 }
 
 class VideoApp {
- static const String backgrond = 'asset/videos/show.mp4';
+  static const String backgrond = 'asset/videos/show.mp4';
 }

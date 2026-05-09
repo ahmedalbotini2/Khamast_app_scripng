@@ -3,15 +3,11 @@ import 'package:flutter_inappwebview/flutter_inappwebview.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:khmsat_services/resources/data.dart';
+import 'package:khmsat_services/resources/resources.dart';
 import 'package:khmsat_services/screens/web_screen.dart';
-import 'package:khmsat_services/services/prtfolio_scrept.dart';
+import 'package:khmsat_services/services/Ai_service.dart';
+import 'package:khmsat_services/services/profile_scrept.dart';
 
-// تأكد من استيراد ملف موديل البيانات الخاص بك
-// import 'package:khmsat_services/widgets/data.dart';
-
-// ملاحظة: قمت بوضع الموديل هنا للتأكد من عمل الكود
-
-// --- الكود الثاني: الشاشة بعد الربط ---
 class ProfileScreen extends StatefulWidget {
   final String username;
   final String cookies;
@@ -30,6 +26,7 @@ class _PortfolioScreenState extends State<ProfileScreen> {
   late WebScrepingPortfolio scraper;
   List<DataList>? services;
   bool isLoading = true;
+  bool isAiAnalyzing = false;
 
   @override
   void initState() {
@@ -51,9 +48,96 @@ class _PortfolioScreenState extends State<ProfileScreen> {
     }
   }
 
+  final aiService = GeminiAiService();
+  Future<void> _handleAiAnalysis() async {
+    debugPrint('1. بدأت العملية');
+
+    // تشخيص حالة البيانات
+    if (services == null) {
+      debugPrint('خطأ: قائمة الخدمات null تماماً (لم يتم تهيئتها)');
+      _showSnackBar("البيانات لم تُجلب بعد، يرجى الانتظار");
+      return;
+    }
+
+    if (services!.isEmpty) {
+      debugPrint('خطأ: قائمة الخدمات فارغة [] (لم يتم العثور على خدمات)$services');
+      _showSnackBar("لا توجد خدمات مسجلة لتحليلها");
+      return;
+    }
+
+    // إذا وصل الكود هنا، فهذا يعني أن هناك بيانات فعلاً
+    setState(() => isAiAnalyzing = true);
+    debugPrint('2. جاري إرسال البيانات.. عدد الخدمات: ${services!.length}');
+
+    try {
+      String userSkills = services!.map((e) => e.name).join(", ");
+      await aiService.analyze(
+        prompt: "Write a compelling bio in Arabic based on my skills...",
+        value: userSkills,
+      );
+
+      debugPrint('3. انتهى التحليل بنجاح');
+      if (mounted) _showAiResultSheet();
+    } catch (e) {
+      debugPrint('فشل في تحليل الذكاء الاصطناعي: $e');
+    } finally {
+      if (mounted) setState(() => isAiAnalyzing = false);
+    }
+  }
+
+  // دالة مساعدة لإظهار رسائل سريعة
+  void _showSnackBar(String message) {
+    ScaffoldMessenger.of(
+      context,
+    ).showSnackBar(SnackBar(content: Text(message)));
+  }
+
+  void _showAiResultSheet() {
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true, // مهم جداً
+      builder: (context) {
+        String result = aiService.getOutput();
+        return Container(
+          padding: const EdgeInsets.all(20),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              const Text(
+                "النتيجة:",
+                style: TextStyle(fontWeight: FontWeight.bold),
+              ),
+              const SizedBox(height: 10),
+              // إذا كان النص فارغاً، سيعرض رسالة تنبيه
+              Text(
+                result.isEmpty
+                    ? "لم يتم استلام نص من الذكاء الاصطناعي"
+                    : result,
+              ),
+            ],
+          ),
+        );
+      },
+    );
+  }
+
   @override
-  Widget build(BuildContext context) {
+  build(BuildContext context) {
     return Scaffold(
+      floatingActionButton: FloatingActionButton(
+        onPressed: isAiAnalyzing ? null : _handleAiAnalysis,
+        child:
+            isAiAnalyzing
+                ? const SizedBox(
+                  width: 20,
+                  height: 20,
+                  child: CircularProgressIndicator(
+                    color: Colors.white,
+                    strokeWidth: 2,
+                  ),
+                )
+                : Image.asset(ImageApp.aiIcon, width: 24, height: 24),
+      ),
       body: Stack(
         children: [
           const _PortfolioBackground(),

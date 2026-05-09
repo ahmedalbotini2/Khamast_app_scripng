@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:khmsat_services/resources/data.dart';
 import 'package:khmsat_services/screens/order_screen.dart';
+import 'package:khmsat_services/services/Ai_service.dart';
 import 'package:khmsat_services/services/services_scrept.dart';
 import 'package:khmsat_services/widgets/custome_widghit.dart';
 import 'package:skeletonizer/skeletonizer.dart';
@@ -94,13 +95,21 @@ class _DataServicesState extends State<DataServices> {
                     name: displayList[index].name,
                     descrption: displayList[index].description,
                     image: displayList[index].image,
-                    onTap:
-                        () => Navigator.push(
+                    onTap: () {
+                      // التحقق من أننا لا نضغط أثناء التحميل وأن الـ ID متاح
+                      if (!isLoading) {
+                        Navigator.push(
                           context,
                           MaterialPageRoute(
-                            builder: (context) => OrderScreen(),
+                            // نقوم بتمرير الـ ID المستخرج من هذا العنصر تحديداً
+                            builder:
+                                (context) => OrderScreen(
+                                  orderId: displayList[index].id ?? '',
+                                ),
                           ),
-                        ),
+                        );
+                      }
+                    },
                   );
                 },
               ),
