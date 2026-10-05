@@ -182,7 +182,12 @@ class _PortfolioScreenState extends State<ProfileScreen> {
                               strokeWidth: 2,
                             ),
                           )
-                          : Image.asset(ImageApp.aiIcon, width: 24, height: 24,),
+                          : Image.asset(
+                            ImageApp.aiIcon,
+                            width: 24,
+                            height: 24,
+                            color: Colors.white,
+                          ),
                 )
                 : null,
         body: Stack(
