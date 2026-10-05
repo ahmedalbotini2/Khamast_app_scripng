@@ -81,8 +81,8 @@ class _CustomSliverState extends State<CustomSliver> {
                     if (widget.descrption.isNotEmpty)
                       Text(
                         widget.descrption,
-                        // maxLines: 1,
-                        //overflow: TextOverflow.ellipsis,
+                        maxLines: 2,
+                        overflow: TextOverflow.ellipsis,
                         style: const TextStyle(
                           fontSize: 12,
                           color: Color(0xFF4A4A4A),
@@ -131,7 +131,7 @@ class _CustomSliverState extends State<CustomSliver> {
               horizontal: 14,
               vertical: 12,
             ),
-           
+
             leading: Container(
               width: 56,
               height: 56,

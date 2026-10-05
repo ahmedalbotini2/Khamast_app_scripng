@@ -10,7 +10,7 @@ Future<void> main() async {
     WidgetsFlutterBinding.ensureInitialized();
     await initializeServiceBackground();
     await NotificationService.init();
-    Gemini.init(apiKey: 'AIzaSyAvHsSfEWZfCCGahX-VLoeu4XVp2X6jimg');
+    Gemini.init(apiKey: 'ai key');
   } catch (error) {
     debugPrint('$error');
   }
@@ -76,7 +76,7 @@ class _MainPageState extends State<MainPage> {
         shadowColor: const Color(0x33000000),
         centerTitle: true,
         title: const Text(
-          'خمسات',
+          'خدمات خمسات',
           style: TextStyle(fontWeight: FontWeight.bold),
         ),
       ),

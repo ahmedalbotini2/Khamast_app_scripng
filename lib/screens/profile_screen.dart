@@ -8,6 +8,8 @@ import 'package:khmsat_services/screens/web_screen.dart';
 import 'package:khmsat_services/services/Ai_service.dart';
 import 'package:khmsat_services/services/profile_scrept.dart';
 
+import 'package:skeletonizer/skeletonizer.dart';
+
 class ProfileScreen extends StatefulWidget {
   final String username;
   final String cookies;
@@ -28,6 +30,9 @@ class _PortfolioScreenState extends State<ProfileScreen> {
   bool isLoading = true;
   bool isAiAnalyzing = false;
 
+  /// الحساب مربوط إذا وُجد اسم المستخدم والكوكيز (MainScreen يمرر نصاً فارغاً عند عدمهما)
+  bool get _isLinked => widget.username.isNotEmpty && widget.cookies.isNotEmpty;
+
   @override
   void initState() {
     super.initState();
@@ -35,17 +40,36 @@ class _PortfolioScreenState extends State<ProfileScreen> {
       username: widget.username,
       cookies: widget.cookies,
     );
-    _loadData();
+    if (_isLinked) {
+      _loadData();
+    } else {
+      // لا حاجة لجلب بيانات من خمسات بدون حساب مربوط
+      isLoading = false;
+    }
   }
 
-  Future<void> _loadData() async {
-    final data = await scraper.extractData();
-    if (mounted) {
-      setState(() {
-        services = data;
-        isLoading = false;
-      });
+  Future<void> _loadData({bool showSkeleton = true}) async {
+    if (showSkeleton && !isLoading) {
+      setState(() => isLoading = true);
     }
+    final data = await scraper.extractData();
+    if (!mounted) return;
+
+    final refreshFailed =
+        !showSkeleton && data.isEmpty && (services?.isNotEmpty ?? false);
+    setState(() {
+      if (!refreshFailed) services = data;
+      isLoading = false;
+    });
+    if (refreshFailed) _showSnackBar('تعذّر التحديث، حاول مرة أخرى');
+  }
+
+  /// يفتح صفحة تسجيل الدخول في خمسات لربط الحساب
+  void _openLinkAccount() {
+    Navigator.push(
+      context,
+      MaterialPageRoute(builder: (_) => const WebScreen()),
+    );
   }
 
   final aiService = GeminiAiService();
@@ -60,7 +84,9 @@ class _PortfolioScreenState extends State<ProfileScreen> {
     }
 
     if (services!.isEmpty) {
-      debugPrint('خطأ: قائمة الخدمات فارغة [] (لم يتم العثور على خدمات)$services');
+      debugPrint(
+        'خطأ: قائمة الخدمات فارغة [] (لم يتم العثور على خدمات)$services',
+      );
       _showSnackBar("لا توجد خدمات مسجلة لتحليلها");
       return;
     }
@@ -121,66 +147,247 @@ class _PortfolioScreenState extends State<ProfileScreen> {
     );
   }
 
+  static const _fakeName = 'اسم المستخدم الكامل هنا';
+  static const _fakeBio =
+      'نبذة شخصية تجريبية تظهر أثناء التحميل فقط لتعطي شكل النص الحقيقي '
+      'وطوله، وتمتد على عدة أسطر كما تظهر النبذة الفعلية للبائع في خمسات '
+      'حتى يكون الشكل قبل التحميل وبعده متطابقًا قدر الإمكان.';
+  static final _fakeServices = List.generate(
+    3,
+    (_) => DataList(
+      name: 'عنوان خدمة تجريبي بطول مناسب',
+      image: '',
+      description:
+          'وصف الخدمة التجريبي يظهر هنا ويمتد على سطرين كاملين كما في '
+          'الحقيقي حتى يتطابق الشكل تمامًا مع البيانات.',
+    ),
+  );
   @override
-  build(BuildContext context) {
-    return Scaffold(
-      floatingActionButton: FloatingActionButton(
-        onPressed: isAiAnalyzing ? null : _handleAiAnalysis,
-        child:
-            isAiAnalyzing
-                ? const SizedBox(
-                  width: 20,
-                  height: 20,
-                  child: CircularProgressIndicator(
-                    color: Colors.white,
-                    strokeWidth: 2,
-                  ),
-                )
-                : Image.asset(ImageApp.aiIcon, width: 24, height: 24),
-      ),
-      body: Stack(
-        children: [
-          const _PortfolioBackground(),
-          SafeArea(
-            child: Column(
-              children: [
-                _PortfolioHeader(
-                  onBack: () => Navigator.of(context).maybePop(),
-                ),
-                Expanded(
+  @override
+  Widget build(BuildContext context) {
+    return Directionality(
+      textDirection: TextDirection.rtl,
+      child: Scaffold(
+        floatingActionButton:
+            _isLinked
+                ? FloatingActionButton(
+                  onPressed: isAiAnalyzing ? null : _handleAiAnalysis,
                   child:
-                      isLoading
-                          ? const Center(
+                      isAiAnalyzing
+                          ? const SizedBox(
+                            width: 20,
+                            height: 20,
                             child: CircularProgressIndicator(
-                              color: Color(0xFFD4AF37),
+                              color: Colors.white,
+                              strokeWidth: 2,
                             ),
                           )
-                          : ListView(
-                            padding: const EdgeInsets.fromLTRB(16, 6, 16, 24),
-                            children: [
-                              _ProfileCard(
-                                name: scraper.displayName ?? "جاري التحميل...",
-                                avatar: scraper.avatarUrl,
+                          : Image.asset(ImageApp.aiIcon, width: 24, height: 24,),
+                )
+                : null,
+        body: Stack(
+          children: [
+            const _PortfolioBackground(),
+            SafeArea(
+              child: Column(
+                children: [
+                  _PortfolioHeader(
+                    onBack: () => Navigator.of(context).maybePop(),
+                    showLogout: _isLinked,
+                  ),
+                  Expanded(
+                    child:
+                        !_isLinked
+                            ? _LinkAccountPrompt(onLink: _openLinkAccount)
+                            : (!isLoading && scraper.displayName == null)
+                            ? _ProfileLoadError(onRetry: _loadData)
+                            : RefreshIndicator(
+                              color: const Color(0xFFD4AF37),
+                              onRefresh: () => _loadData(showSkeleton: false),
+                              child: Skeletonizer(
+                                enabled: isLoading,
+                                ignoreContainers: true,
+                                effect: const ShimmerEffect(
+                                  baseColor: Color(0xFFEDE3C4),
+                                  highlightColor: Color(0xFFFFF8E1),
+                                ),
+                                child: ListView(
+                                  physics:
+                                      isLoading
+                                          ? const NeverScrollableScrollPhysics()
+                                          : const AlwaysScrollableScrollPhysics(),
+                                  padding: const EdgeInsets.fromLTRB(
+                                    16,
+                                    6,
+                                    16,
+                                    24,
+                                  ),
+                                  children: [
+                                    _ProfileCard(
+                                      name:
+                                          isLoading
+                                              ? _fakeName
+                                              : scraper.displayName!,
+                                      avatar:
+                                          isLoading ? null : scraper.avatarUrl,
+                                    ),
+                                    const SizedBox(height: 16),
+                                    _AboutSection(
+                                      bio: isLoading ? _fakeBio : scraper.bio,
+                                    ),
+                                    const SizedBox(height: 16),
+                                    _PortfolioSection(
+                                      items:
+                                          isLoading
+                                              ? _fakeServices
+                                              : (services ?? []),
+                                    ),
+                                    const SizedBox(height: 16),
+                                    const Skeleton.keep(
+                                      child: _ContactSection(),
+                                    ),
+                                  ],
+                                ),
                               ),
-                              const SizedBox(height: 16),
-                              _AboutSection(bio: scraper.bio),
-                              const SizedBox(height: 16),
-                              _PortfolioSection(items: services ?? []),
-                              const SizedBox(height: 16),
-                              const _ContactSection(),
-                            ],
-                          ),
-                ),
-              ],
+                            ),
+                  ),
+                ],
+              ),
             ),
-          ),
-        ],
+          ],
+        ),
       ),
     );
   }
 }
 
 // --- الودجت الفرعية مع تحديث استلام البيانات ---
+
+/// تظهر عندما لا يكون الحساب مربوطاً: نص توضيحي + زر ربط الحساب
+class _LinkAccountPrompt extends StatelessWidget {
+  final VoidCallback onLink;
+  const _LinkAccountPrompt({required this.onLink});
+
+  @override
+  Widget build(BuildContext context) {
+    return Center(
+      child: SingleChildScrollView(
+        padding: const EdgeInsets.all(24),
+        child: Container(
+          padding: const EdgeInsets.all(24),
+          decoration: BoxDecoration(
+            color: Colors.white.withAlpha(235),
+            borderRadius: BorderRadius.circular(22),
+            boxShadow: const [
+              BoxShadow(
+                color: Color(0x22000000),
+                blurRadius: 14,
+                offset: Offset(0, 6),
+              ),
+            ],
+          ),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Container(
+                width: 64,
+                height: 64,
+                decoration: const BoxDecoration(
+                  color: Color(0xFFD4AF37),
+                  shape: BoxShape.circle,
+                ),
+                child: const Icon(
+                  Icons.auto_awesome_rounded,
+                  color: Colors.black,
+                  size: 32,
+                ),
+              ),
+              const SizedBox(height: 16),
+              Text(
+                'قم بربط حسابك للاستفادة من ميزة الذكاء الاصطناعي '
+                'ومجموعة من الميزات التي يوفرها التطبيق',
+                textAlign: TextAlign.center,
+                style: GoogleFonts.tajawal(
+                  fontSize: 15,
+                  height: 1.6,
+                  fontWeight: FontWeight.w700,
+                  color: const Color(0xFF111111),
+                ),
+              ),
+              const SizedBox(height: 20),
+              SizedBox(
+                width: double.infinity,
+                child: ElevatedButton.icon(
+                  onPressed: onLink,
+                  icon: const Icon(Icons.link_rounded),
+                  label: Text(
+                    'ربط الحساب',
+                    style: GoogleFonts.tajawal(fontWeight: FontWeight.w700),
+                  ),
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: const Color(0xFFD4AF37),
+                    foregroundColor: Colors.black,
+                    elevation: 0,
+                    padding: const EdgeInsets.symmetric(vertical: 14),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(14),
+                    ),
+                  ),
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+class _ProfileLoadError extends StatelessWidget {
+  final VoidCallback onRetry;
+  const _ProfileLoadError({required this.onRetry});
+
+  @override
+  Widget build(BuildContext context) {
+    return Center(
+      child: Padding(
+        padding: const EdgeInsets.all(24),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            const Icon(
+              Icons.error_outline_rounded,
+              color: Colors.black45,
+              size: 40,
+            ),
+            const SizedBox(height: 12),
+            Text(
+              'تعذّر جلب بيانات الملف الشخصي',
+              style: GoogleFonts.tajawal(
+                fontSize: 15,
+                fontWeight: FontWeight.w700,
+                color: const Color(0xFF111111),
+              ),
+              textAlign: TextAlign.center,
+            ),
+            const SizedBox(height: 16),
+            ElevatedButton(
+              onPressed: onRetry,
+              style: ElevatedButton.styleFrom(
+                backgroundColor: const Color(0xFFD4AF37),
+                foregroundColor: Colors.black,
+              ),
+              child: Text(
+                'إعادة المحاولة',
+                style: GoogleFonts.tajawal(fontWeight: FontWeight.w700),
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
 
 class _ProfileCard extends StatelessWidget {
   final String name;
@@ -206,21 +413,23 @@ class _ProfileCard extends StatelessWidget {
         children: [
           Row(
             children: [
-              CircleAvatar(
-                radius: 32,
-                backgroundColor: const Color(0xFFD4AF37),
-                backgroundImage:
-                    avatar != null && avatar!.isNotEmpty
-                        ? NetworkImage(avatar!)
-                        : null,
-                child:
-                    avatar == null || avatar!.isEmpty
-                        ? const Icon(
-                          Icons.person,
-                          color: Colors.black,
-                          size: 34,
-                        )
-                        : null,
+              Skeleton.leaf(
+                child: CircleAvatar(
+                  radius: 32,
+                  backgroundColor: const Color(0xFFD4AF37),
+                  backgroundImage:
+                      avatar != null && avatar!.isNotEmpty
+                          ? NetworkImage(avatar!)
+                          : null,
+                  child:
+                      avatar == null || avatar!.isEmpty
+                          ? const Icon(
+                            Icons.person,
+                            color: Colors.black,
+                            size: 34,
+                          )
+                          : null,
+                ),
               ),
               const SizedBox(width: 14),
               Expanded(
@@ -236,12 +445,14 @@ class _ProfileCard extends StatelessWidget {
                       ),
                     ),
                     const SizedBox(height: 4),
-                    Text(
-                      'بائع في خمسات',
-                      style: GoogleFonts.tajawal(
-                        fontSize: 13.5,
-                        color: Colors.black54,
-                        fontWeight: FontWeight.w500,
+                    Skeleton.leaf(
+                      child: Text(
+                        'بائع في خمسات',
+                        style: GoogleFonts.tajawal(
+                          fontSize: 13.5,
+                          color: Colors.black54,
+                          fontWeight: FontWeight.w500,
+                        ),
                       ),
                     ),
                   ],
@@ -318,22 +529,24 @@ class _ServiceItemCard extends StatelessWidget {
       ),
       child: Row(
         children: [
-          ClipRRect(
-            borderRadius: BorderRadius.circular(12),
-            child:
-                item.image.isNotEmpty
-                    ? Image.network(
-                      item.image,
-                      width: 54,
-                      height: 54,
-                      fit: BoxFit.cover,
-                    )
-                    : Container(
-                      width: 54,
-                      height: 54,
-                      color: Colors.grey[200],
-                      child: const Icon(Icons.image),
-                    ),
+          Skeleton.leaf(
+            child: ClipRRect(
+              borderRadius: BorderRadius.circular(12),
+              child:
+                  item.image.isNotEmpty
+                      ? Image.network(
+                        item.image,
+                        width: 54,
+                        height: 54,
+                        fit: BoxFit.cover,
+                      )
+                      : Container(
+                        width: 54,
+                        height: 54,
+                        color: Colors.grey[200],
+                        child: const Icon(Icons.image),
+                      ),
+            ),
           ),
           const SizedBox(width: 12),
           Expanded(
@@ -372,7 +585,10 @@ class _ServiceItemCard extends StatelessWidget {
 
 class _PortfolioHeader extends StatelessWidget {
   final VoidCallback onBack;
-  const _PortfolioHeader({required this.onBack});
+
+  /// إظهار زر تسجيل الخروج (يُخفى عندما لا يكون الحساب مربوطاً)
+  final bool showLogout;
+  const _PortfolioHeader({required this.onBack, this.showLogout = true});
 
   @override
   Widget build(BuildContext context) {
@@ -393,12 +609,6 @@ class _PortfolioHeader extends StatelessWidget {
         ),
         child: Row(
           children: [
-            IconButton(
-              onPressed: () => _logout(context),
-              icon: Icon(Icons.devices_fold_outlined),
-            ),
-
-            const Spacer(),
             Text(
               'الملف الشخصي',
               style: GoogleFonts.tajawal(
@@ -407,6 +617,15 @@ class _PortfolioHeader extends StatelessWidget {
                 color: const Color(0xFF111111),
               ),
             ),
+            const Spacer(),
+            if (showLogout)
+              IconButton(
+                onPressed: () => _logout(context),
+                icon: const Icon(Icons.logout_rounded),
+                color: const Color(0xFF111111),
+              )
+            else
+              const SizedBox(height: 48),
           ],
         ),
       ),
@@ -459,14 +678,16 @@ class _SectionCard extends StatelessWidget {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Text(
-            title,
-            style: GoogleFonts.tajawal(
-              fontSize: 15.5,
-              fontWeight: FontWeight.w700,
-              color: const Color(0xFF111111),
+          Skeleton.keep(
+            child: Text(
+              title,
+              style: GoogleFonts.tajawal(
+                fontSize: 15.5,
+                fontWeight: FontWeight.w700,
+                color: const Color(0xFF111111),
+              ),
+              textAlign: TextAlign.right,
             ),
-            textAlign: TextAlign.right,
           ),
           const SizedBox(height: 12),
           child,
