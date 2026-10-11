@@ -1,16 +1,14 @@
 import 'package:flutter/material.dart';
-import 'package:flutter_gemini/flutter_gemini.dart';
-import 'package:khmsat_services/screens/main_screen.dart';
-import 'package:khmsat_services/screens/splach_screen.dart';
-import 'package:khmsat_services/services/background_service.dart';
-import 'package:khmsat_services/services/notification.dart';
+import 'package:khmsat_services/core/services/background_service.dart';
+import 'package:khmsat_services/core/services/notification.dart';
+import 'package:khmsat_services/screens/main/view/main_screen.dart';
+import 'package:khmsat_services/screens/splash/view/splach_screen.dart';
 
 Future<void> main() async {
   try {
     WidgetsFlutterBinding.ensureInitialized();
     await initializeServiceBackground();
     await NotificationService.init();
-    Gemini.init(apiKey: 'ai key');
   } catch (error) {
     debugPrint('$error');
   }
@@ -27,16 +25,16 @@ class MyApp extends StatelessWidget {
       themeMode: ThemeMode.light,
       theme: ThemeData(
         useMaterial3: true,
-        scaffoldBackgroundColor: Color(0xFFF8F5EF),
+        scaffoldBackgroundColor: const Color(0xFFF8F5EF),
         colorScheme: ColorScheme.light(
-          primary: Color(0xFFD4AF37),
-          secondary: Color(0xFF111111),
-          surface: Color(0xFFFFF8E6),
+          primary: const Color(0xFFD4AF37),
+          secondary: const Color(0xFF111111),
+          surface: const Color(0xFFFFF8E6),
           onPrimary: Colors.black,
           onSecondary: Colors.white,
           onSurface: Colors.black,
         ),
-        appBarTheme: AppBarTheme(
+        appBarTheme: const AppBarTheme(
           backgroundColor: Color(0xFFD4AF37),
           foregroundColor: Colors.black,
           elevation: 0.0,
@@ -59,17 +57,6 @@ class _MainPageState extends State<MainPage> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      // floatingActionButton: FloatingActionButton(
-      //   heroTag: 'main_fab',
-      //   onPressed: () {
-      //     Navigator.push(
-      //       context,
-      //       MaterialPageRoute(builder: (_) => const WebScreen()),
-      //     );
-      //   },
-      //   backgroundColor: const Color(0xFFD4AF37),
-      //   child: const Icon(Icons.g_mobiledata_outlined, color: Colors.black),
-      // ),
       appBar: AppBar(
         backgroundColor: const Color(0xFFD4AF37),
         elevation: 0.0,
